@@ -17,13 +17,14 @@
   (cons x (lazy-seq (num-seq (next-val x)))))
 
 (defn happy? [x]
-  (loop [seen #{}
-         xs   (num-seq x)]
-    (let [e  (first xs)]
-      (cond
-        (= e 1)             true
-        (contains? seen e)  false
-        :else               (recur (conj seen e) (rest xs))))))
+  (memoize (fn [x]
+             (loop [seen #{}
+                    xs   (num-seq x)]
+               (let [e  (first xs)]
+                 (cond
+                   (= e 1)             true
+                   (contains? seen e)  false
+                   :else               (recur (conj seen e) (rest xs))))))))
 
 (def happy-numbers (filter happy? (iterate inc 1)))
 
