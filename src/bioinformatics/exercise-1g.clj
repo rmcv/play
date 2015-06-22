@@ -1,5 +1,6 @@
 (ns genome.core
-  (:require [clojure.math.combinatorics :as combo]))
+  (:require [clojure.math.combinatorics :as combo]
+            [clojure.core.reducers :as r]))
 
 (use 'clojure.pprint)
 
@@ -22,22 +23,28 @@
   (let [mf  (mutations #{\A\C\G\T} k d)]
     (->> (partition k 1 text)
          frequencies
-         (mapcat (fn [[w v]] (->> (mf w)
-                                  (map (fn [x] {x v})))))
+         (map (fn [[w v]]
+                (persistent!
+                 (reduce (fn [m s] (assoc! m s v)) (transient {}) (mf w)))))
+         #_(map (fn [[w v]]
+                (reduce (fn [m s] (assoc m s v)) {} (mf w))))
          (apply merge-with +)
          (group-by val)
          (apply max-key key)
          val
          (map key)
-         (cl-format *out* "~{~{~a~}~%~}")
+
          )))
+
+(time (r/fold + ((map inc) +) (vec (range 1000000))))
 
 ;;;;;
 
 (let [w1 "CACAGTAGGCGCCGGCACACACAGCCCCGGGCCCCGGGCCGCCCCGGGCCGGCGGCCGCCGGCGCCGGCACACCGGCACAGCCGTACCGGCACAGTAGTACCGGCCGGCCGGCACACCGGCACACCGGGTACACACCGGGGCGCACACACAGGCGGGCGCCGGGCCCCGGGCCGTACCGGGCCGCCGGCGGCCCACAGGCGCCGGCACAGTACCGGCACACACAGTAGCCCACACACAGGCGGGCGGTAGCCGGCGCACACACACACAGTAGGCGCACAGCCGCCCACACACACCGGCCGGCCGGCACAGGCGGGCGGGCGCACACACACCGGCACAGTAGTAGGCGGCCGGCGCACAGCC"
       g1 "GCACACAGAC"
       g2 "GCGCACACAC"]
-  (time (freq-words-with-mismatches w1 10 2)))
+  (->> (time (freq-words-with-mismatches w1 10 3))
+       (cl-format *out* "~{~{~a~}~%~}")))
 
 (let [w1 "ACGTTGCATGTCGCATGATGCATGAGAGCT"
       g1 "ATGT"
