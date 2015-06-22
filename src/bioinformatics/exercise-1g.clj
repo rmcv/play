@@ -3,20 +3,20 @@
 
 (use 'clojure.pprint)
 
-(defn gen-seq [w [indices replacements]]
-  (->> (map vector indices replacements)
-       (reduce (fn [w [i c]] (assoc w i c)) w)))
+(defn gen-seq [w replacements]
+  (reduce (fn [w [i c]]
+            (assoc w i c)) w replacements))
 
 (defn mutations [s k d]
   (let [cbs (combo/combinations (range k) d)
         sls (combo/selections s d)
-        cps (combo/cartesian-product cbs sls)]
+        rps (->> (combo/cartesian-product cbs sls)
+                 (map (fn [[indices replacements]]
+                        (map vector indices replacements))))]
     (fn [w]
       (let [w (vec w)]
-        (->> cps
-             (map #(gen-seq w %))
-             set
-             )))))
+        (->> (map #(gen-seq w %) rps)
+             (into #{}))))))
 
 (defn freq-words-with-mismatches [text k d]
   (let [mf  (mutations #{\A\C\G\T} k d)]
@@ -31,7 +31,6 @@
          (map key)
          (cl-format *out* "~{~{~a~}~%~}")
          )))
-
 
 ;;;;;
 
