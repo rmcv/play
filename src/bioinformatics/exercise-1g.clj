@@ -1,12 +1,12 @@
-(ns genome.core
+(ns bioinformatics.exercises
   (:require [clojure.math.combinatorics :as combo]
             [clojure.core.reducers :as r]))
 
 (use 'clojure.pprint)
 
 (defn gen-seq [w replacements]
-  (reduce (fn [w [i c]]
-            (assoc w i c)) w replacements))
+  (reduce (fn [s [i c]]
+            (assoc s i c)) w replacements))
 
 (defn mutations [s k d]
   (let [cbs (combo/combinations (range k) d)
@@ -17,44 +17,35 @@
     (fn [w]
       (let [w (vec w)]
         (->> (map #(gen-seq w %) rps)
-             (into #{}))))))
+             dedupe)))))
 
 (defn freq-words-with-mismatches [text k d]
-  (let [mf  (mutations #{\A\C\G\T} k d)]
-    (->> (partition k 1 text)
-         frequencies
-         (map (fn [[w v]]
-                (persistent!
-                 (reduce (fn [m s] (assoc! m s v)) (transient {}) (mf w)))))
-         #_(map (fn [[w v]]
-                (reduce (fn [m s] (assoc m s v)) {} (mf w))))
-         (apply merge-with +)
+  (let [mutate-f  (mutations #{\A \C \G \T} k d)
+        word-freq (->> (partition k 1 text)
+                       frequencies
+                       (into []))]
+    (->> (r/fold 128
+                 (fn ([] {})
+                   ([a b] (merge-with + a b)))
+                 (fn [s [w v]]
+                   (merge-with + s (reduce (fn [m s] (assoc m s v)) {} (mutate-f w))))
+                 word-freq)
          (group-by val)
          (apply max-key key)
          val
-         (map key)
-
-         )))
-
-(time (r/fold + ((map inc) +) (vec (range 1000000))))
+         (map key))))
 
 ;;;;;
 
 (let [w1 "CACAGTAGGCGCCGGCACACACAGCCCCGGGCCCCGGGCCGCCCCGGGCCGGCGGCCGCCGGCGCCGGCACACCGGCACAGCCGTACCGGCACAGTAGTACCGGCCGGCCGGCACACCGGCACACCGGGTACACACCGGGGCGCACACACAGGCGGGCGCCGGGCCCCGGGCCGTACCGGGCCGCCGGCGGCCCACAGGCGCCGGCACAGTACCGGCACACACAGTAGCCCACACACAGGCGGGCGGTAGCCGGCGCACACACACACAGTAGGCGCACAGCCGCCCACACACACCGGCCGGCCGGCACAGGCGGGCGGGCGCACACACACCGGCACAGTAGTAGGCGGCCGGCGCACAGCC"
-      g1 "GCACACAGAC"
-      g2 "GCGCACACAC"]
-  (->> (time (freq-words-with-mismatches w1 10 3))
+      ]
+  (->> (time (freq-words-with-mismatches w1 10 2))
        (cl-format *out* "~{~{~a~}~%~}")))
 
-(let [w1 "ACGTTGCATGTCGCATGATGCATGAGAGCT"
-      g1 "ATGT"
-      g2 "ATGC"
-      g3 "CATG"
-      g4 "GCAT"]
-  (time (freq-words-with-mismatches w1 4 1)))
+(let [w1 "ACGTTGCATGTCGCATGATGCATGAGAGCT"]
+  (->> (time (freq-words-with-mismatches w1 4 1))
+       (cl-format *out* "~{~{~a~}~%~}")))
 
 (let [w1 "TTTTTCAAGCAGGATGAGCAGGATGAATATCTCTCGTTCACCTGCGTTCACCTGTTTTTCAAGCAGGATGACGTTCACCTGCAGAAGCATTTTTCAAGCAGGATGATTTTTCAAATATCTCTTTTTTCAAGCAGGATGACAGAAGCACAGAAGCACGTTCACCTGCAGAAGCATTTTTCAAATATCTCTCAGAAGCATTTTTCAACGTTCACCTGCAGAAGCACGTTCACCTGGCAGGATGACGTTCACCTGATATCTCTTTTTTCAACAGAAGCAGCAGGATGAGCAGGATGACAGAAGCAATATCTCTATATCTCTCGTTCACCTGATATCTCTATATCTCTCAGAAGCATTTTTCAATTTTTCAACGTTCACCTGTTTTTCAAGCAGGATGAATATCTCTTTTTTCAATTTTTCAATTTTTCAACGTTCACCTGATATCTCTGCAGGATGAATATCTCTATATCTCTCGTTCACCTGTTTTTCAACAGAAGCAATATCTCTGCAGGATGAATATCTCTCAGAAGCAGCAGGATGATTTTTCAACAGAAGCAGCAGGATGACAGAAGCAATATCTCTTTTTTCAAATATCTCTCGTTCACCTGCAGAAGCACGTTCACCTGCAGAAGCATTTTTCAAGCAGGATGATTTTTCAAGCAGGATGATTTTTCAAGCAGGATGACAGAAGCAGCAGGATGAGCAGGATGATTTTTCAACGTTCACCTGATATCTCTATATCTCTGCAGGATGAATATCTCTATATCTCTTTTTTCAACAGAAGCAGCAGGATGACGTTCACCTGCGTTCACCTGATATCTCTCGTTCACCTGCGTTCACCTGCGTTCACCTGCAGAAGCACGTTCACCTGGCAGGATGAATATCTCTGCAGGATGACAGAAGCA"
-      g1 "ATGT"
-      g2 "ATGC"
-      g3 "GATG"]
+      ]
   (time (freq-words-with-mismatches w1 5 2)))
