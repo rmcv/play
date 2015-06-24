@@ -9,4 +9,5 @@
                  [org.clojure/data.json "0.2.6"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/math.combinatorics "0.1.1"]
-                 [com.mcdermottroe.apple/osxkeychain "1.0"]])
+                 [com.mcdermottroe.apple/osxkeychain "1.0"]
+                 [criterium "0.4.3"]])
