@@ -34,7 +34,7 @@
 
 (shared-kmers-problems 3 "AAACTCATCATC" "TTTCAAATC")
 
-(def path #(str "/Users/rimonchi/Downloads/" %))
+(def path #(str "./" %))
 (def in-file (path "rosalind_6d.txt"))
 (def out-file (path "rosalind_6d_output.txt"))
 
