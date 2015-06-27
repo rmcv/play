@@ -8,7 +8,7 @@
          reverse
          (mapv dna-complement))))
 
-(defn shared-kmers-problems [k s1 s2]
+(defn shared-kmers-problems-q [k s1 s2]
   (letfn [(gen-seq [genome f]
             (->> (partition k 1 genome)
                  (map-indexed (fn [i e] [(f e) i]))
@@ -35,8 +35,18 @@
            (concat (->> (get-pairs xs rs)
                         (map (fn [[x y]] [x 1 y]))))
            sort
-           (map (fn [[x _ z]] [x z]))
-           (cl-format nil "~{(~{~a~^, ~})~%~}")))))
+           (map (fn [[x _ z]] [x z]))))))
+
+(defn shared-kmers-problems [k s1 s2]
+  (let [iseq #(->> (partition k 1 %) (map-indexed vector))
+        s1s  (iseq s1)
+        s2m  (group-by last (iseq s2))
+        s2rm (zipmap (map reverse-complement (keys s2m))
+                     (vals s2m))]
+    (for [[xi x] s1s
+          [yi _] (concat (s2m x) (s2rm x))]
+      [xi yi])))
+
 
 (def path #(str (System/getProperty "user.home") "/Downloads/" %))
 (def in-file (path "rosalind_6d.txt"))
@@ -47,7 +57,10 @@
       s1   (nth txt 1)
       s2   (nth txt 2)]
 
-  (->> (time (shared-kmers-problems k s1 s2))
+  (println "k=" k "genome1="(count s1) "genome2=" (count s2))
+
+  (->> (time (doall (shared-kmers-problems k s1 s2)))
+       (cl-format nil "~{(~{~a~^, ~})~%~}")
        (spit out-file)))
 
 (let [txt  (clojure.string/split-lines (slurp in-file))
