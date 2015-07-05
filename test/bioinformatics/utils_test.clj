@@ -27,3 +27,7 @@
                 (count-same)
                 (map last)) "aabbcCcddeeggffabcd")
  => [1 14 4])
+
+(fact
+ (sequence (partition-by-set :id) [{:ans 2 :id 1} {:ans 3 :id 3} {:ans 4 :id 1} {:ans 5 :id 2} {:ans 6 :id 1}])
+ => '([{:ans 2, :id 1} {:ans 3, :id 3}] [{:ans 4, :id 1} {:ans 5, :id 2}] [{:ans 6, :id 1}]))
