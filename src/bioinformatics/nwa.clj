@@ -36,19 +36,20 @@ Y -2 -2 -3 -2  3 -3  2 -1 -2 -1 -1 -2 -3 -1 -2 -2 -2 -1  2  7"
 
 (def sub-score BLOSUM62)
 
+(def gap -5)
+
 (defn score [x y i j]
-  (let [gap   -10
-        top?  (= i 0)
+  (let [top?  (= i 0)
         left? (= j 0)]
     (if (or top? left?)
       (let [s (* gap (+ i j))]
         (cond
-          (and top? left?) {:val s :path [:done]}
-          top?             {:val s :path [:l]}
-          left?            {:val s :path [:t]}))
-      (let [{d :val dv :path} (score x y (dec i) (dec j))
-            {t :val tv :path} (score x y (dec i) j)
-            {l :val lv :path} (score x y i (dec j))
+          (and top? left?) [s [:done]]
+          top?             [s [:l]]
+          left?            [s [:t]]))
+      (let [[d dv] (score x y (dec i) (dec j))
+            [t tv] (score x y (dec i) j)
+            [l lv] (score x y i (dec j))
             [p s] (->> {:d (+ d (sub-score [(nth y i) (nth x j)]))
                         :l (+ l gap)
                         :t (+ t gap)}
@@ -57,32 +58,8 @@ Y -2 -2 -3 -2  3 -3  2 -1 -2 -1 -1 -2 -3 -1 -2 -2 -2 -1  2  7"
                             :d dv
                             :l lv
                             :t tv))]
-        {:val s :path v}))))
+        [s v]))))
 
-(defn score [x y i j]
-  (let [gap   -5
-        top?  (= i 0)
-        left? (= j 0)
-        row   (nth y i)
-        col   (nth x j)]
-    (if (or top? left?)
-      (let [s (* gap (+ i j))]
-        (cond
-          (and top? left?) {:val s :path []}
-          top?             {:val s :path [[col nil]]}
-          left?            {:val s :path [[nil row]]}))
-      (let [{d :val dv :path} (score x y (dec i) (dec j))
-            {t :val tv :path} (score x y (dec i) j)
-            {l :val lv :path} (score x y i (dec j))
-            [p s] (->> {:d (+ d (sub-score [row col]))
-                        :l (+ l gap)
-                        :t (+ t gap)}
-                       (apply max-key val))
-            v     (condp = p
-                    :d (conj dv [col row])
-                    :l (conj lv [col nil])
-                    :t (conj tv [nil row]))]
-        {:val s :path v}))))
 
 (defn track-back [x y path]
   (let [xlen (count x)
@@ -105,11 +82,11 @@ Y -2 -2 -3 -2  3 -3  2 -1 -2 -1 -1 -2 -3 -1 -2 -2 -2 -1  2  7"
                             j (range (count x))]
                         (score x y i j)))]
         (-> ans
-            (update :path #(track-back x y %)))))))
+            (update 1 #(track-back x y %)))))))
 
 (let [[input output] (io "rosalind_5e")
       [a b] input
-      {:keys [val path]} (global-align a b)
+      [val path] (time (global-align a b))
       pf    #(cl-format nil "~{~a~}" (map (fn [x] (if x x \-)) %))
       s1    (pf (map first path))
       s2    (pf (map last path))
