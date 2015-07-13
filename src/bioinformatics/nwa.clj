@@ -1,9 +1,13 @@
 (ns bioinformatics.nwa
-  (:require [clojure.string :as str])
+  (:require [clojure.string :as str]
+            ;[clojure.core.matrix :refer :all]
+            [clatrix.core :refer [mget mset! matrix] :as cm])
   (:use [bioinformatics.utils]
         [clojure.pprint]
-        [criterium.core]))
+        [criterium.core]
+        ))
 
+(set! *warn-on-reflection* true)
 
 (def BLOSUM62
   "A  C  D  E  F  G  H  I  K  L  M  N  P  Q  R  S  T  V  W  Y
@@ -29,49 +33,71 @@ W -3 -2 -4 -3  1 -2 -2 -3 -3 -2 -1 -4 -4 -2 -3 -3 -2 -3 11  2
 Y -2 -2 -3 -2  3 -3  2 -1 -2 -1 -1 -2 -3 -1 -2 -2 -2 -1  2  7"
 )
 
+(set-current-implementation :jblaz)
 
-(defn sub-score* [matrix]
-  (let [[h & d] (str/split-lines matrix)
+(defn sub-score* [m]
+  (let [[h & d] (str/split-lines m)
         cs      (zipmap (map first (str/split h #"  +"))
                         (range))
-        dm      (mapv (fn [l] (->> (str/split l #" +")
-                                  (drop 1)
-                                  (mapv read-string))) d)
+        dm      (matrix (mapv (fn [l] (->> (str/split l #" +")
+                                          (drop 1)
+                                          (mapv read-string))) d))
         ]
     (fn [a b]
       (let [i (cs a)
             j (cs b)]
-        (nth (nth dm i) j))))
+        (mget dm i j))))
   )
 
 (def sub-score (sub-score* BLOSUM62))
 
 (def gap -5)
 
-(defrecord Res [score source])
+(defn global-align [a b]
+  (let [a (vec (cons \$ a))
+        b (vec (cons \$ b))
+        cols (count a)
+        rows (count b)
+        sa  (matrix (make-array Integer/TYPE rows cols))
+        da  (matrix (make-array Integer/TYPE rows cols))
+        gm (volatile! Integer/MIN_VALUE)
+        gi (volatile! 0)
+        gj (volatile! 0)]
+    (dotimes [i rows]
+      (mset!  da i 0 1)   ; no-b
+      (mset!  sa i 0 (* i gap)))
+    (dotimes [j cols]
+      (mset!  da 0 j 2)   ; :no-a
+      (mset!  sa 0 j (* j gap)))
+    (mset! da 0 0 0)
 
-(defn score  [x y i j]
-  (let [top?  (= i 0)
-        left? (= j 0)]
-    (if (or top? left?)
-      (let [s (* gap (+ i j))]
-        (Res. s (cond
-                  (and top? left?) :done
-                  top?             :l
-                  left?            :t)))
-      (let [{d :score}  (score x y (dec i) (dec j))
-            {t :score}  (score x y (dec i) j)
-            {l :score}  (score x y i (dec j))
-            dv          (+ d (sub-score (nth y i) (nth x j)))
-            tv          (+ t gap)
-            lv          (+ l gap)
-            m           (max dv tv lv)
-            source      (condp = m
-                          dv :d
-                          tv :t
-                          lv :l)
-            ]
-        (Res. m source)))))
+    (dotimes [i (dec rows)]
+      (let [i  (inc i)
+            bi (nth b i)]
+        (dotimes [j (dec cols)]
+          (let [j  (inc j)
+                aj (nth a j)
+                sc (int (sub-score bi aj))
+                d  (+ sc  (mget sa (dec i) (dec j)))
+                t  (+ gap (mget sa (dec i) j))
+                l  (+ gap (mget sa i (dec j)))
+                m  (max d t l)]
+            (if (> m @gm)
+              (do
+                (vreset! gm m)
+                (vreset! gi i)
+                (vreset! gj j)))
+            (mset! sa i j m)
+            (mset! da i j (condp = m
+                           d 3 ;:a-b
+                           t 2 ;:no-a
+                           l 1 ;:no-b
+                           ))))))
+    {:score sa
+     :path  da
+     :max   {:score @gm
+             :i     @gi
+             :j     @gj}}))
 
 
 (defn track-back [x y path]
@@ -87,29 +113,32 @@ Y -2 -2 -3 -2  3 -3  2 -1 -2 -1 -1 -2 -3 -1 -2 -2 -2 -1  2  7"
             [[] (dec ylen) (dec xlen)]
             path)))
 
-(defn global-align [x y]
-  (let [x (vec (cons \$ x))
-        y (vec (cons \$ y))]
-    (with-redefs [score (memoize score)]
-      (let [ans (last (for [i (range (count y))
-                            j (range (count x))]
-                        (score  x y i j)))]
-        (-> ans
-            #_(update 1 #(track-back x y %)))))))
 
 (let [[input output] (io "rosalind_5e")
       [a b] input
-      a (take 4000 a)
-      b (take 500 b)
+;      a (take 4000 a)
+;      b (take 4000 b)
       r (time (global-align a b))
       ;pf    #(cl-format nil "~{~a~}" (map (fn [x] (if x x \-)) %))
       ;s1    (pf (map first path))
       ;s2    (pf (map last path))
       ;s     (str val "\n" s1 "\n" s2)
       ]
-  r
+  (println r)
   #_(output s))
 
-(time (global-align "SEND" "AND"))
+(defn print-matrix [[sa da]]
+  (cl-format *out* "~{~{~4d~}~%~}" sa)
+  (cl-format *out* "~{~{~7a~}~%~}" da))
 
-(time (global-align "PLEASANTLY" "MEANLY"))
+(set! *print-length* 3)
+(->> (time (global-align "SEND" "AND"))
+     #_(print-matrix))
+
+
+(->> (time (global-align "PLEASANTLY" "MEANLY"))
+     #_print-matrix)
+
+
+(def mm (matrix (make-array Integer/TYPE 30 30)))
+(mset mm 1 2 -3)
