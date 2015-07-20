@@ -15,4 +15,6 @@
                  [com.googlecode.concurrent-trees/concurrent-trees "2.4.0"]
                  [net.mikera/core.matrix "0.36.1"]
                  [clatrix "0.5.0"]
-                 [criterium "0.4.3"]])
+                 [reaver "0.1.1"]
+                 [criterium "0.4.3"]
+                 [com.google.guava/guava "17.0"]])
