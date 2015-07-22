@@ -79,11 +79,13 @@
        ))
 
 
+(comment
+
 (for [y (range 2012 2015)]
   (pc y "JS4501"))
 
-                                        ; JS6456 HKU Medi
-                                        ; JS4501 CU Medi
+  ; JS6456 HKU Medi
+  ; JS4501 CU Medi
 
 
 (let [course "JS4501"]
@@ -103,4 +105,4 @@
                     "Chemistry" 5,
                     "Eng Lit" 6,
                     "Mathematics Extended Modules I" 6}})
-     clojure.pprint/pprint)
+     clojure.pprint/pprint))
