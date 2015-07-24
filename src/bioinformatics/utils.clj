@@ -1,4 +1,5 @@
-(ns bioinformatics.utils)
+(ns bioinformatics.utils
+  (:require [clojure.core.async :as async :refer [chan <!! >!! >! <! timeout go go-loop close! dropping-buffer]]))
 
 (defn io [fname]
   (let [fpath (str (System/getProperty "user.home") "/Downloads/" fname)
@@ -102,3 +103,35 @@
                       (conj! ans t))))]
     (->> (map-indexed vector ss)
          (sort-by last cx))))
+
+(defn throttle [c msgs-per-sec]
+  (let [bucket (chan)
+        out    (chan)]
+    (go-loop [n 0]
+      (if (= n 0)
+        (do (<! bucket)
+            (recur msgs-per-sec))
+        (let [i (<! c)]
+          (if (nil? i)
+            (close! out)
+            (do (>! out i)
+                (recur (dec n)))))))
+    (go
+      (while true
+        (<! (timeout 1000))
+        (>! bucket :token)))
+    out))
+
+(comment
+  (let [in        (chan)
+        slow-chan (throttle in 7)
+        not-nil?  (comp not nil?)]
+
+    (go
+      (dotimes [i 30]
+        (>! in i))
+      (close! in))
+
+    (time (while (let [x (<!! slow-chan)]
+                   (println x)
+                   (not-nil? x))))))
