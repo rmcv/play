@@ -104,7 +104,9 @@
     (->> (map-indexed vector ss)
          (sort-by last cx))))
 
-(defn throttle [c msgs-per-sec]
+(defn throttle
+  "returns a throttled channel base on input channel c and the throttle rate"
+  [c msgs-per-sec]
   (let [bucket (chan)
         out    (chan)]
     (go-loop [n 0]
