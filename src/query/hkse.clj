@@ -42,6 +42,7 @@
     (->> (extract-from data "TABLE[class=table_grey_border] tr"
                        [:data]
                        "td" text)
+         (drop 1)
          (map (comp ->security :data)))))
 
 (defn get-company-details [code]
