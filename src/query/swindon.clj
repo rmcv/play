@@ -12,7 +12,8 @@
                                     :ContactPhone1 (.substring p 0 3)
                                     :ContactPhone2 (.substring p 4 7)
                                     :ContactPhone  p
-                                    :ContactEmail  nil}}
+                                    :ContactEmail  nil}
+                      :as "Big5"}
                      )
              :body
              parse)]
@@ -26,5 +27,6 @@
        (group-by #(nth % 5))
        vals
        (apply concat)
-       (map (fn [[_ n _ _ _ s]] [s n]))
-       (cl-format *out* "~{~{~20A~}~%~}")))
+       (map (fn [[i n _ _ _ s]]
+              (cl-format *out* "~%~4A~10A~A" i s n)))
+       doall))
