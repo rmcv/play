@@ -33,8 +33,6 @@ W -3 -2 -4 -3  1 -2 -2 -3 -3 -2 -1 -4 -4 -2 -3 -3 -2 -3 11  2
 Y -2 -2 -3 -2  3 -3  2 -1 -2 -1 -1 -2 -3 -1 -2 -2 -2 -1  2  7"
 )
 
-(set-current-implementation :jblaz)
-
 (defn sub-score* [m]
   (let [[h & d] (str/split-lines m)
         cs      (zipmap (map first (str/split h #"  +"))
@@ -43,7 +41,7 @@ Y -2 -2 -3 -2  3 -3  2 -1 -2 -1 -1 -2 -3 -1 -2 -2 -2 -1  2  7"
                                           (drop 1)
                                           (mapv read-string))) d))
         ]
-    (fn [a b]
+    (fn [^Character a ^Character b]
       (let [i (cs a)
             j (cs b)]
         (mget dm i j))))
@@ -54,23 +52,22 @@ Y -2 -2 -3 -2  3 -3  2 -1 -2 -1 -1 -2 -3 -1 -2 -2 -2 -1  2  7"
 (def gap -5)
 
 (defn global-align [a b]
-  (let [a (vec (cons \$ a))
-        b (vec (cons \$ b))
+  (let [a    (vec (cons \$ a))
+        b    (vec (cons \$ b))
         cols (count a)
         rows (count b)
-        sa  (matrix (make-array Integer/TYPE rows cols))
-        da  (matrix (make-array Integer/TYPE rows cols))
-        gm (volatile! Integer/MIN_VALUE)
-        gi (volatile! 0)
-        gj (volatile! 0)]
+        sa   (matrix (make-array Integer/TYPE rows cols))
+        da   (matrix (make-array Integer/TYPE rows cols))
+        gm   (volatile! Integer/MIN_VALUE)
+        gi   (volatile! 0)
+        gj   (volatile! 0)]
     (dotimes [i rows]
-      (mset!  da i 0 1)   ; no-b
-      (mset!  sa i 0 (* i gap)))
+      (mset! da i 0 1)   ; no-b
+      (mset! sa i 0 (* i gap)))
     (dotimes [j cols]
-      (mset!  da 0 j 2)   ; :no-a
-      (mset!  sa 0 j (* j gap)))
+      (mset! da 0 j 2)   ; :no-a
+      (mset! sa 0 j (* j gap)))
     (mset! da 0 0 0)
-
     (dotimes [i (dec rows)]
       (let [i  (inc i)
             bi (nth b i)]
@@ -116,13 +113,13 @@ Y -2 -2 -3 -2  3 -3  2 -1 -2 -1 -1 -2 -3 -1 -2 -2 -2 -1  2  7"
 
 (let [[input output] (io "rosalind_5e")
       [a b] input
-;      a (take 4000 a)
-;      b (take 4000 b)
+                                        ;      a (take 4000 a)
+                                        ;      b (take 4000 b)
       r (time (global-align a b))
-      ;pf    #(cl-format nil "~{~a~}" (map (fn [x] (if x x \-)) %))
-      ;s1    (pf (map first path))
-      ;s2    (pf (map last path))
-      ;s     (str val "\n" s1 "\n" s2)
+                                        ;pf    #(cl-format nil "~{~a~}" (map (fn [x] (if x x \-)) %))
+                                        ;s1    (pf (map first path))
+                                        ;s2    (pf (map last path))
+                                        ;s     (str val "\n" s1 "\n" s2)
       ]
   (println r)
   #_(output s))
@@ -138,7 +135,3 @@ Y -2 -2 -3 -2  3 -3  2 -1 -2 -1 -1 -2 -3 -1 -2 -2 -2 -1  2  7"
 
 (->> (time (global-align "PLEASANTLY" "MEANLY"))
      #_print-matrix)
-
-
-(def mm (matrix (make-array Integer/TYPE 30 30)))
-(mset mm 1 2 -3)
