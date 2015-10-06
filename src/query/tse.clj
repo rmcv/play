@@ -15,6 +15,27 @@
                  first)]
     (zipmap (:txt ans) (:code ans))))
 
+(defn- get-cookies []
+  (let [cs  (clj-http.cookies/cookie-store)
+        _   (c/get "http://www2.tse.or.jp/tseHpFront/JJK020020Action.do"
+                   {:cookie-store cs})]
+    cs))
+
+(defn get-details
+  [cs sec-code]
+  (let [doc (->> (c/post "http://www2.tse.or.jp/tseHpFront/JJK020030Action.do"
+                         {:form-params {:BaseJh "BaseJh"
+                                        :mgrCd  sec-code}
+                          :cookie-store cs
+                          })
+                 :body
+                 parse)]
+    (->> (extract-from doc "TABLE[class=fontsizeS margin20] tr"
+                       [:x :y]
+                       "th" text
+                                        ;"td" text
+                       ))))
+
 (defn get-securities
   ([x]
    (if (instance? String x)
