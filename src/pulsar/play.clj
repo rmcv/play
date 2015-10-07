@@ -1,9 +1,10 @@
 (ns pulsar.play
-  (:refer-clojure :exclude [await])
-  (:use [co.paralleluniverse.pulsar.actors])
-  (:require [co.paralleluniverse.pulsar.core
-             :refer [snd spawn-fiber join await]]))
-
+  (:require
+   [co.paralleluniverse.pulsar
+    [core :refer :all]
+    [actors :refer :all]])
+  (:refer-clojure :exclude [promise await])
+  (:gen-class))
 
 (defn- get-name [ref clients]
   (-> (first (filter #(= (:ref %) ref) clients))
@@ -13,7 +14,7 @@
   (doseq [c clients]
     (! (:ref c) msg)))
 
-(defn server [clients]
+(defsfn server [clients]
   (receive
    [:join ref name] (do
                       (link! ref)
@@ -26,12 +27,12 @@
                        [:new-msg (get-name ref clients) msg]
                        clients)
                       (recur clients))
+   :shutdown        (println "Shutting down")
    [:exit _ ref _]  (do
                       (broadcast
                        [:info (str (get-name ref clients) " left the chat")]
                        clients)
-                      (recur clients))
-   :shutdown        (println "Shutting down")))
+                      (recur clients))))
 
 (defn create-server []
   (spawn :trap true server '()))
@@ -42,7 +43,7 @@
 (defn- prn-msg [name from msg]
   (client-prn name (format "%s: %s" from msg)))
 
-(defn client [name server]
+(defsfn client [name server]
   (receive
    [:new-msg from msg] (do (prn-msg name from msg)
                            (recur name server))
@@ -60,11 +61,13 @@
     (! server [:join c name])
     c))
 
+
+
 (comment
   (def s (create-server))
-(def c1 (create-client "Sam" s))
-(! c1 [:send "Hi, anyone here?"])
-(def c2 (create-client "Mia" s))
-(def c3 (create-client "Luke" s))
-(! c2 [:send "Hello!"])
-)
+  (def c1 (create-client "Sam" s))
+  (! c1 [:send "Hi, anyone here?"])
+  (def c2 (create-client "Mia" s))
+  (def c3 (create-client "Luke" s))
+  (! c2 [:send "Hello!"])
+  )

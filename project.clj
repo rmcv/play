@@ -14,6 +14,7 @@
                  [org.clojure/math.combinatorics "0.1.1"]
                  ;[com.mcdermottroe.apple/osxkeychain "1.0"]
                  [co.paralleluniverse/pulsar "0.7.3"]
+                 [co.paralleluniverse/quasar-core "0.7.3"]
                  [com.googlecode.concurrent-trees/concurrent-trees "2.4.0"]
                  [net.mikera/core.matrix "0.36.1"]
                  [clatrix "0.5.0"]
