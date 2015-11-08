@@ -32,6 +32,6 @@
           data (map (apply juxt hdrs) maps)
           out  (cons (map name hdrs) data)]
       (csv/write-csv writer out))))
-
+;;
 (write-output data #{:key2 :key1} "output2.csv")
 
