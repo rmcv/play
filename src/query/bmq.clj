@@ -16,7 +16,6 @@
             :c 7}]}])
 
 
-
 (defn denorm [group-keys d]
  (let [h (->> d
               (remove (fn [[k _]] (contains? group-keys k)))
@@ -26,12 +25,13 @@
                   (map (fn [m]
                          (merge h {k true} m)) ms))))))
 
-(def maps
-  (mapcat (partial denorm #{:key1 :key2}) data))
+(defn write-output [data group-keys filename]
+  (with-open [writer (io/writer filename)]
+    (let [maps (mapcat #(denorm group-keys %) data)
+          hdrs (->> maps (mapcat keys) (into #{}) sort)
+          data (map (apply juxt hdrs) maps)
+          out  (cons (map name hdrs) data)]
+      (csv/write-csv writer out))))
 
-
-(let [hdrs (->> maps (mapcat keys) (into #{}) sort)
-      data (map (apply juxt hdrs) maps)
-      out  (cons (map name hdrs) data)]
-  out)
+(write-output data #{:key2 :key1} "output2.csv")
 
