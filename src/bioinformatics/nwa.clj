@@ -110,28 +110,28 @@ Y -2 -2 -3 -2  3 -3  2 -1 -2 -1 -1 -2 -3 -1 -2 -2 -2 -1  2  7"
             [[] (dec ylen) (dec xlen)]
             path)))
 
-
-(let [[input output] (io "rosalind_5e")
-      [a b] input
+(comment
+  (let [[input output] (io "rosalind_5e")
+        [a b] input
                                         ;      a (take 4000 a)
                                         ;      b (take 4000 b)
-      r (time (global-align a b))
+        r (time (global-align a b))
                                         ;pf    #(cl-format nil "~{~a~}" (map (fn [x] (if x x \-)) %))
                                         ;s1    (pf (map first path))
                                         ;s2    (pf (map last path))
                                         ;s     (str val "\n" s1 "\n" s2)
-      ]
-  (println r)
-  #_(output s))
+        ]
+    (println r)
+    #_(output s))
 
-(defn print-matrix [[sa da]]
-  (cl-format *out* "~{~{~4d~}~%~}" sa)
-  (cl-format *out* "~{~{~7a~}~%~}" da))
+  (defn print-matrix [[sa da]]
+    (cl-format *out* "~{~{~4d~}~%~}" sa)
+    (cl-format *out* "~{~{~7a~}~%~}" da))
 
-(set! *print-length* 3)
-(->> (time (global-align "SEND" "AND"))
-     #_(print-matrix))
+  (set! *print-length* 3)
+  (->> (time (global-align "SEND" "AND"))
+       #_(print-matrix))
 
 
-(->> (time (global-align "PLEASANTLY" "MEANLY"))
-     #_print-matrix)
+  (->> (time (global-align "PLEASANTLY" "MEANLY"))
+       #_print-matrix))
