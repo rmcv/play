@@ -1,4 +1,6 @@
-(ns query.bmq)
+(ns query.bmq
+  (:require [clojure.data.csv :as csv]
+             [clojure.java.io :as io]))
 
 (def data
   [{:reqid 1
@@ -24,5 +26,12 @@
                   (map (fn [m]
                          (merge h {k true} m)) ms))))))
 
-(denorm #{:key1 :key2} (first data))
-(mapcat (partial denorm #{:key1 :key2}) data)
+(def maps
+  (mapcat (partial denorm #{:key1 :key2}) data))
+
+
+(let [hdrs (->> maps (mapcat keys) (into #{}) sort)
+      data (map (apply juxt hdrs) maps)
+      out  (cons (map name hdrs) data)]
+  out)
+
