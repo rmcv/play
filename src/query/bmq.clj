@@ -15,23 +15,28 @@
     :key2 [{:v 6
             :c 7}]}])
 
+(defn- is-child-group? [v]
+  (and (or (vector? v) (list? v))
+       (or (= (count v) 0)
+           (map? (first v)))))
 
-(defn denorm [group-keys d]
- (let [h (->> d
-              (remove (fn [[k _]] (contains? group-keys k)))
-              (into {}))]
-   (->> (select-keys d group-keys)
-        (mapcat (fn [[k ms]]
-                  (map (fn [m]
-                         (merge h {k true} m)) ms))))))
+(defn- flatten-group [m]
+  (let [child-groups (filter (fn [[_ v]] (is-child-group? v)) m)
+        others       (apply dissoc m (map first child-groups))]
+    (if (empty? child-groups)
+      [m]
+      (->> child-groups
+           (mapcat (fn [[k ms]]
+                     (mapv #(merge % {k true})
+                           (mapcat flatten-group ms))))
+           (mapv #(merge % others))))))
 
-(defn write-output [data group-keys filename]
+(defn write-output [data filename]
   (with-open [writer (io/writer filename)]
-    (let [maps (mapcat #(denorm group-keys %) data)
+    (let [maps (mapcat flatten-group data)
           hdrs (->> maps (mapcat keys) (into #{}) sort)
           data (map (apply juxt hdrs) maps)
           out  (cons (map name hdrs) data)]
       (csv/write-csv writer out))))
 ;;
-(write-output data #{:key2 :key1} "output2.csv")
-
+(write-output data "output2.csv")
