@@ -381,41 +381,58 @@ The priority is determined by comparing (keyfn val).
 (defn pos+ [position delta]
   (mapv + position delta))
 
-(defn move [{:keys [zpos board] :as b} delta]
+(defn- mdist [[r0 c0] [r1 c1]]
+  (let [dr (- r0 r1)
+        dc (- c0 c1)]
+    (+ (* dr dr) (* dc dc))))
+
+(defn- calc-hc [hmap hc [rz cz] [r1 c1] v2]  ;; rz cz become v2, r1 c1 become 0
+  (let [ans (- hc (mdist (hmap 0) [rz cz]) (mdist (hmap v2) [r1 c1]))
+        ans (+ ans (mdist (hmap 0) [r1 c1]) (mdist (hmap v2) [rz cz]))]
+    ans))
+
+(defn move [{:keys [zpos board hc] :as b} delta hmap]
   (let [new-pos (pos+ zpos delta)]
-    (let [v1 0 ;;(get-in board zpos)
-          v2 (get-in board new-pos)
+    (let [v1     0 ;;(get-in board zpos)
+          v2     (get-in board new-pos)
           board' (-> board
                      (assoc-in zpos v2)
                      (assoc-in new-pos v1))]
       (assoc b
+             :hc (calc-hc hmap hc zpos new-pos v2)
              :zpos new-pos
              :board board'))))
 
-(def deltas [[0 1][0 -1][-1 0][1 0]])
+(def deltas [[0 1] [0 -1] [-1 0] [1 0]])
 
 (defn all-moves [{:keys [zpos board]}]
   (->> deltas
        (filter (fn [d] (get-in board (pos+ zpos d))))))
 
-(defn solved? [{:keys [board]} soln]
-  (= board soln))
+(defn solved? [{:keys [hc]}]
+  (zero? hc))
 
-(defrecord NPuz [board soln]
+(defrecord NPuz [board hmap]
   Problem
-  (initial-state [this] board)
-  (actions [this board] (all-moves board))
-  (result [this board action] (move board action))
-  (goal? [this board] (solved? board soln))
-  (step-cost [this board action] 1)
-  )
+  (initial-state [o] board)
+  (actions [o board] (all-moves board))
+  (result [o board action] (move board action hmap))
+  (goal? [o board] (solved? board))
+  (step-cost [o board action] 1))
+
+(defn- hc [board hmap k]
+  (->> (for [r    (range k)
+             c    (range k)
+             :let [v (get-in board [r c])]]
+         (mdist [r c] (hmap v)))
+       (reduce +)))
 
 
 (defn run []
   (let [k     (Integer/parseInt (read-line))
         board (->> (for [_ (range (* k k))]
                      (Integer/parseInt (read-line)))
-                   (partition 3)
+                   (partition k)
                    (mapv vec))
         zpos  (->> (for [r     (range k)
                          c     (range k)
@@ -427,18 +444,11 @@ The priority is determined by comparing (keyfn val).
         hmap  (into {} (for [r (range k)
                              c (range k)]
                          [(get-in soln [r c]) [r c]]))
-        hfn   (fn [{:keys [board]}]
-                (->> (for [r    (range k)
-                           c    (range k)
-                           :let [v (get-in board [r c])
-                                 [r0 c0] (hmap v)
-                                 dc (- c0 c)
-                                 dr (- r0 r)]]
-                       (+ (* dc dc) (* dr dr)))
-                     (reduce +)))
         ans   (path
-               (astar-search (->NPuz {:zpos zpos :board board} soln)
-                             hfn))]
+               (astar-search (->NPuz {:zpos zpos
+                                      :board board
+                                      :hc (hc board hmap k)} hmap)
+                             (fn [{:keys [hc]}] hc)))]
     (println (count ans))
     (doseq [m ans]
       (println (case m
@@ -446,9 +456,10 @@ The priority is determined by comparing (keyfn val).
                  [0 -1] "LEFT"
                  [1 0]  "DOWN"
                  [-1 0] "UP")))))
-(->> 
- (run)
- (with-in-str "3
+
+(comment (->> 
+          (run)
+          (with-in-str "3
 0
 3
 8
@@ -458,7 +469,43 @@ The priority is determined by comparing (keyfn val).
 2
 6
 5"
-   )
- ;; with-out-str
- (dotimes [_ 1])
- time)
+            )
+          ;; with-out-str
+          (dotimes [_ 1])
+          time))
+
+(time
+ (with-out-str
+   (with-in-str "3
+0
+1
+2
+4
+5
+3
+7
+8
+6
+"
+     (run))))
+
+(comment
+  (time
+   (with-in-str "4
+5
+1
+6
+4
+9
+3
+0
+7
+2
+10
+11
+8
+13
+14
+15
+12"
+     (run))))
